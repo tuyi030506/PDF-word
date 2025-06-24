@@ -1,0 +1,487 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PDF转换工具 - 生产版</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        
+        .container {
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+            padding: 40px;
+            max-width: 600px;
+            width: 100%;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .header h1 {
+            color: #333;
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+        
+        .header p {
+            color: #666;
+            font-size: 1.1em;
+        }
+        
+        .status-banner {
+            background: linear-gradient(135deg, #4CAF50, #45a049);
+            color: white;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            text-align: center;
+            font-weight: 500;
+        }
+        
+        .upload-area {
+            border: 3px dashed #ddd;
+            border-radius: 12px;
+            padding: 40px;
+            text-align: center;
+            margin-bottom: 30px;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+        
+        .upload-area:hover {
+            border-color: #667eea;
+            background-color: #f8f9ff;
+        }
+        
+        .upload-area.dragover {
+            border-color: #667eea;
+            background-color: #f0f4ff;
+        }
+        
+        .upload-icon {
+            font-size: 48px;
+            color: #ddd;
+            margin-bottom: 20px;
+        }
+        
+        .upload-text {
+            color: #666;
+            font-size: 1.1em;
+            margin-bottom: 10px;
+        }
+        
+        .file-input {
+            display: none;
+        }
+        
+        .file-info {
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 20px 0;
+            display: none;
+        }
+        
+        .format-selector {
+            margin: 20px 0;
+        }
+        
+        .format-selector label {
+            display: block;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 15px;
+            font-size: 1.1em;
+        }
+        
+        .format-options {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+        
+        .format-option {
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .format-option:hover {
+            border-color: #667eea;
+            transform: translateY(-2px);
+        }
+        
+        .format-option.selected {
+            border-color: #667eea;
+            background-color: #f0f4ff;
+        }
+        
+        .format-option input {
+            display: none;
+        }
+        
+        .format-icon {
+            font-size: 32px;
+            margin-bottom: 10px;
+        }
+        
+        .format-name {
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 5px;
+        }
+        
+        .format-desc {
+            font-size: 0.9em;
+            color: #666;
+        }
+        
+        .convert-btn {
+            width: 100%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 16px 32px;
+            font-size: 1.2em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-top: 20px;
+        }
+        
+        .convert-btn:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
+        }
+        
+        .convert-btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+        
+        .status {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+            display: none;
+        }
+        
+        .status.success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        
+        .status.error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        
+        .status.info {
+            background-color: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-right: 10px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .system-info {
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 20px;
+            font-size: 0.9em;
+            color: #666;
+        }
+        
+        .system-info h4 {
+            color: #333;
+            margin-bottom: 10px;
+        }
+        
+        .feature-list {
+            list-style: none;
+            padding: 0;
+        }
+        
+        .feature-list li {
+            padding: 5px 0;
+        }
+        
+        @media (max-width: 768px) {
+            .container {
+                padding: 20px;
+            }
+            
+            .header h1 {
+                font-size: 2em;
+            }
+            
+            .format-options {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📄 PDF转换工具</h1>
+            <p>高质量PDF文件转换为Word或Excel格式</p>
+        </div>
+        
+        <div class="status-banner">
+            🚀 真实转换功能已启用 - 支持PDF转Word/Excel
+        </div>
+        
+        <div class="upload-area" id="uploadArea">
+            <div class="upload-icon">📁</div>
+            <div class="upload-text">点击选择PDF文件或拖拽文件到此处</div>
+            <div style="font-size: 0.9em; color: #999;">支持最大50MB的PDF文件</div>
+            <input type="file" id="fileInput" class="file-input" accept=".pdf">
+        </div>
+        
+        <div class="file-info" id="fileInfo"></div>
+        
+        <div class="format-selector">
+            <label>选择输出格式：</label>
+            <div class="format-options">
+                <div class="format-option selected" data-format="docx">
+                    <input type="radio" name="format" value="docx" checked>
+                    <div class="format-icon">📝</div>
+                    <div class="format-name">Word文档</div>
+                    <div class="format-desc">保持完整格式和布局</div>
+                </div>
+                <div class="format-option" data-format="xlsx">
+                    <input type="radio" name="format" value="xlsx">
+                    <div class="format-icon">📊</div>
+                    <div class="format-name">Excel表格</div>
+                    <div class="format-desc">提取表格和数据</div>
+                </div>
+            </div>
+        </div>
+        
+        <button class="convert-btn" id="convertBtn" disabled>
+            开始转换
+        </button>
+        
+        <div class="status" id="status"></div>
+        
+        <div class="system-info">
+            <h4>🔧 转换引擎状态</h4>
+            <ul class="feature-list" id="featureList">
+                <li>🔄 正在检查系统状态...</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        const uploadArea = document.getElementById('uploadArea');
+        const fileInput = document.getElementById('fileInput');
+        const fileInfo = document.getElementById('fileInfo');
+        const convertBtn = document.getElementById('convertBtn');
+        const status = document.getElementById('status');
+        const formatOptions = document.querySelectorAll('.format-option');
+        const featureList = document.getElementById('featureList');
+        
+        let selectedFile = null;
+        
+        // 检查系统状态
+        async function checkSystemStatus() {
+            try {
+                const response = await fetch('/api/status');
+                const data = await response.json();
+                
+                featureList.innerHTML = Object.entries(data.features)
+                    .map(([key, value]) => `<li>${value} ${key.replace(/_/g, ' ')}</li>`)
+                    .join('');
+                    
+                console.log('系统状态:', data);
+            } catch (error) {
+                featureList.innerHTML = '<li>❌ 无法获取系统状态</li>';
+            }
+        }
+        
+        // 文件选择处理
+        uploadArea.addEventListener('click', () => fileInput.click());
+        
+        fileInput.addEventListener('change', handleFileSelect);
+        
+        // 拖拽上传
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.classList.add('dragover');
+        });
+        
+        uploadArea.addEventListener('dragleave', () => {
+            uploadArea.classList.remove('dragover');
+        });
+        
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                const file = files[0];
+                if (file.type === 'application/pdf') {
+                    fileInput.files = files;
+                    handleFileSelect({ target: { files: [file] } });
+                } else {
+                    showStatus('请选择PDF文件', 'error');
+                }
+            }
+        });
+        
+        // 格式选择处理
+        formatOptions.forEach(option => {
+            option.addEventListener('click', () => {
+                formatOptions.forEach(opt => opt.classList.remove('selected'));
+                option.classList.add('selected');
+                option.querySelector('input').checked = true;
+            });
+        });
+        
+        // 文件选择处理
+        function handleFileSelect(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            
+            if (!file.type.includes('pdf')) {
+                showStatus('请选择PDF文件', 'error');
+                return;
+            }
+            
+            selectedFile = file;
+            
+            const sizeInMB = (file.size / (1024 * 1024)).toFixed(2);
+            fileInfo.innerHTML = `
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <div style="font-size: 24px;">📄</div>
+                    <div>
+                        <div style="font-weight: 600; color: #333;">${file.name}</div>
+                        <div style="color: #666; font-size: 0.9em;">大小: ${sizeInMB} MB</div>
+                        <div style="color: #4CAF50; font-size: 0.8em;">✅ 准备就绪，可以开始转换</div>
+                    </div>
+                </div>
+            `;
+            fileInfo.style.display = 'block';
+            convertBtn.disabled = false;
+            hideStatus();
+        }
+        
+        // 转换处理
+        convertBtn.addEventListener('click', async () => {
+            if (!selectedFile) return;
+            
+            const format = document.querySelector('input[name="format"]:checked').value;
+            const formatName = format === 'docx' ? 'Word' : 'Excel';
+            
+            convertBtn.disabled = true;
+            convertBtn.innerHTML = `<div class="loading"></div>正在转换为${formatName}格式...`;
+            
+            const formData = new FormData();
+            formData.append('file', selectedFile);
+            formData.append('output_format', format);
+            
+            try {
+                const response = await fetch('/api/convert', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.detail?.message || '转换失败');
+                }
+                
+                // 下载文件
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = selectedFile.name.replace('.pdf', `.${format}`);
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+                a.remove();
+                
+                showStatus(`🎉 转换成功！${formatName}文件已开始下载`, 'success');
+                
+            } catch (error) {
+                showStatus(`❌ 转换失败: ${error.message}`, 'error');
+            } finally {
+                convertBtn.disabled = false;
+                convertBtn.innerHTML = '开始转换';
+            }
+        });
+        
+        // 状态显示
+        function showStatus(message, type) {
+            status.textContent = message;
+            status.className = `status ${type}`;
+            status.style.display = 'block';
+            
+            if (type === 'success') {
+                setTimeout(hideStatus, 10000);
+            }
+        }
+        
+        function hideStatus() {
+            status.style.display = 'none';
+        }
+        
+        // 页面加载完成后检查服务状态
+        document.addEventListener('DOMContentLoaded', async () => {
+            try {
+                const response = await fetch('/health');
+                if (response.ok) {
+                    console.log('✅ 服务状态正常');
+                    checkSystemStatus();
+                }
+            } catch (error) {
+                showStatus('⚠️ 服务连接失败，请刷新页面重试', 'error');
+            }
+        });
+    </script>
+</body>
+</html> 

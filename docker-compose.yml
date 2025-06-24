@@ -1,0 +1,45 @@
+version: '3.8'
+
+services:
+  pdf-converter:
+    build: .
+    ports:
+      - "3001:3001"
+    volumes:
+      - ./converted_files:/app/converted_files
+      - ./logs:/app/logs
+    environment:
+      - ENVIRONMENT=production
+      - MAX_FILE_SIZE=52428800  # 50MB
+      - MAX_CONCURRENT_CONVERSIONS=5
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3001/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+          cpus: '1.0'
+        reservations:
+          memory: 512M
+          cpus: '0.5'
+
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf
+      - ./ssl:/etc/nginx/ssl
+    depends_on:
+      - pdf-converter
+    restart: unless-stopped
+
+volumes:
+  converted_files:
+  logs: 
