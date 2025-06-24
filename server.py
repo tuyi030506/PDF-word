@@ -147,8 +147,8 @@ async def convert_with_ilovepdf_fixed(pdf_path: Path, temp_dir: str, output_form
         
         logger.info("开始iLovePDF转换")
         
-        # iLovePDF API凭据
-        ILOVEPDF_PUBLIC_KEY = "project_public_9cf5f6497d2b1edd65b94e6543430bb2_t5EuN6a01487e167e3e908ca46ff1803171fb"
+        # iLovePDF API凭据 - 从环境变量获取
+        ILOVEPDF_PUBLIC_KEY = os.getenv('ILOVEPDF_PUBLIC_KEY', 'your-api-key-here')
         
         # 初始化客户端
         ilovepdf = ILovePdf(ILOVEPDF_PUBLIC_KEY, verify_ssl=True)
@@ -250,7 +250,7 @@ async def test_dependencies():
     # 测试任务创建
     try:
         from pylovepdf.ilovepdf import ILovePdf
-        ILOVEPDF_PUBLIC_KEY = "project_public_9cf5f6497d2b1edd65b94e6543430bb2_t5EuN6a01487e167e3e908ca46ff1803171fb"
+        ILOVEPDF_PUBLIC_KEY = os.getenv('ILOVEPDF_PUBLIC_KEY', 'your-api-key-here')
         ilovepdf = ILovePdf(ILOVEPDF_PUBLIC_KEY, verify_ssl=True)
         task = ilovepdf.new_task('pdfdocx')
         results["task_creation"] = "✅ 任务创建成功"
