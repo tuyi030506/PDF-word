@@ -393,5 +393,7 @@ async def convert_pdf_to_excel(input_path: str, output_path: str) -> bool:
         logger.error(f"PDF转Excel失败: {str(e)}")
         return False
 
-# Vercel handler
-app = app 
+# 确保应用可以正常运行
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=8000) 
