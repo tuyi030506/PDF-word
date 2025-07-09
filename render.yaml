@@ -4,7 +4,7 @@ services:
     env: python
     plan: free
     buildCommand: |
-      apt-get update && apt-get install -y poppler-utils libgl1 libglib2.0-0
+      apt-get update && apt-get install -y build-essential python3-dev poppler-utils libgl1 libglib2.0-0
       pip install -r requirements-render.txt
     startCommand: uvicorn api.index:app --host 0.0.0.0 --port $PORT
     envVars:
