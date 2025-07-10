@@ -314,26 +314,11 @@ async def convert_pdf_to_word(input_path: str, output_path: str) -> bool:
         return False
 
 async def convert_pdf_to_excel(input_path: str, output_path: str) -> bool:
-    """PDF转Excel - 简化版本"""
+    """PDF转Excel - Render免费环境仅导出空表"""
     try:
-        import tabula
         import pandas as pd
-        
-        # 读取PDF中的表格
-        tables = tabula.read_pdf(input_path, pages='all', multiple_tables=True)
-        
-        if not tables:
-            logger.warning("PDF中未发现表格数据")
-            # 创建空的Excel文件
-            pd.DataFrame().to_excel(output_path, index=False)
-            return True
-        
-        # 保存到Excel
-        with pd.ExcelWriter(output_path, engine='openpyxl') as writer:
-            for i, table in enumerate(tables):
-                sheet_name = f'Sheet_{i+1}' if len(tables) > 1 else 'Sheet1'
-                table.to_excel(writer, sheet_name=sheet_name, index=False)
-        
+        # 仅导出空表
+        pd.DataFrame().to_excel(output_path, index=False)
         return True
     except Exception as e:
         logger.error(f"PDF转Excel失败: {str(e)}")
