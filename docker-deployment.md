@@ -32,7 +32,7 @@ RUN mkdir -p converted_files static logs
 EXPOSE 3001
 
 # 启动命令
-CMD ["python", "server_final.py"]
+CMD ["python", "start.py"]
 ```
 
 ### 2. 创建docker-compose.yml

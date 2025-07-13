@@ -22,9 +22,9 @@ RUN useradd --create-home --shell /bin/bash appuser
 WORKDIR /app
 
 # 复制依赖文件并安装
-COPY requirements.txt .
+COPY requirements-render.txt .
 RUN pip install --no-cache-dir --upgrade pip && \
-    pip install --no-cache-dir -r requirements.txt
+    pip install --no-cache-dir -r requirements-render.txt
 
 # 复制应用代码
 COPY . .
@@ -44,4 +44,4 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
     CMD curl -f http://localhost:3001/health || exit 1
 
 # 启动命令
-CMD ["python", "server_final.py"] 
+CMD ["python", "start.py"] 

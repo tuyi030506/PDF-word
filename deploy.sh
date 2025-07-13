@@ -62,10 +62,10 @@ cd $PROJECT_DIR
 
 # 下载项目文件（假设已上传）
 echo "📥 准备项目文件..."
-if [ ! -f "server_final.py" ]; then
+if [ ! -f "start.py" ]; then
     echo "❌ 请先上传项目文件到当前目录"
     echo "📍 当前目录: $(pwd)"
-    echo "📋 需要的文件: server_final.py, requirements.txt, Dockerfile, docker-compose.yml"
+    echo "📋 需要的文件: start.py, requirements-render.txt, Dockerfile, docker-compose.yml"
     exit 1
 fi
 

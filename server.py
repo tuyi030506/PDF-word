@@ -283,7 +283,7 @@ if __name__ == "__main__":
     import uvicorn
     logger.info("启动真实PDF转换服务...")
     uvicorn.run(
-        "server_final:app",
+        "server:app",
         host="0.0.0.0",
         port=3001,
         log_level="info",
