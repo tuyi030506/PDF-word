@@ -237,8 +237,9 @@ async def convert_pdf(file: UploadFile = File(...)):
         if len(content) > MAX_FILE_SIZE:
             raise HTTPException(status_code=400, detail="文件大小超过10MB限制")
         
-        # 创建临时文件
-        with tempfile.TemporaryDirectory() as temp_dir:
+        # 创建临时目录
+        temp_dir = tempfile.mkdtemp()
+        try:
             input_path = os.path.join(temp_dir, "input.pdf")
             output_path = os.path.join(temp_dir, "output.docx")
             
@@ -251,8 +252,13 @@ async def convert_pdf(file: UploadFile = File(...)):
             # 执行转换
             success = await convert_pdf_to_word(input_path, output_path)
             
-            if not success or not os.path.exists(output_path):
-                raise HTTPException(status_code=500, detail="转换失败")
+            if not success:
+                raise HTTPException(status_code=500, detail="转换失败，请检查PDF文件是否完整")
+            
+            # 再次确认文件存在
+            if not os.path.exists(output_path):
+                logger.error(f"转换后文件不存在: {output_path}")
+                raise HTTPException(status_code=500, detail="转换失败，输出文件未生成")
             
             # 生成下载文件名
             base_name = os.path.splitext(file.filename)[0]
@@ -260,6 +266,7 @@ async def convert_pdf(file: UploadFile = File(...)):
             download_filename = f"{timestamp}_{base_name}.docx"
             
             logger.info(f"转换完成，耗时: {time.time() - start_time:.2f}秒")
+            logger.info(f"输出文件: {output_path}, 大小: {os.path.getsize(output_path)} bytes")
             
             # 返回文件
             return FileResponse(
@@ -267,6 +274,22 @@ async def convert_pdf(file: UploadFile = File(...)):
                 filename=download_filename,
                 media_type='application/vnd.openxmlformats-officedocument.wordprocessingml.document'
             )
+        finally:
+            # 延迟清理临时目录，确保文件传输完成
+            import threading
+            def cleanup():
+                import time
+                time.sleep(5)  # 等待5秒确保文件传输完成
+                import shutil
+                try:
+                    shutil.rmtree(temp_dir)
+                    logger.info(f"临时目录已清理: {temp_dir}")
+                except Exception as e:
+                    logger.warning(f"清理临时目录失败: {e}")
+            
+            cleanup_thread = threading.Thread(target=cleanup)
+            cleanup_thread.daemon = True
+            cleanup_thread.start()
             
     except HTTPException:
         raise
@@ -280,10 +303,18 @@ async def convert_pdf_to_word(input_path: str, output_path: str) -> bool:
         from pdf2docx import Converter
         
         cv = Converter(input_path)
-        cv.convert(output_path, multi_processing=False)
+        cv.convert(output_path, start=0, end=None)
         cv.close()
         
-        return True
+        # 检查文件是否真的生成了
+        if os.path.exists(output_path):
+            file_size = os.path.getsize(output_path)
+            logger.info(f"转换成功，文件大小: {file_size} bytes")
+            return True
+        else:
+            logger.error(f"转换失败，输出文件不存在: {output_path}")
+            return False
+            
     except Exception as e:
         logger.error(f"PDF转Word失败: {str(e)}")
         return False 
