@@ -1,0 +1,12 @@
+services:
+  - type: web
+    name: pdf-converter-fixed
+    env: python
+    plan: free
+    buildCommand: pip install -r requirements-render-fixed.txt
+    startCommand: python start_fixed.py
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.9
+      - key: PYTHONUNBUFFERED
+        value: 1 
