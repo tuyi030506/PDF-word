@@ -325,6 +325,42 @@ async def get_status():
         "features": ["pdf-to-word", "csp-compatible"]
     }
 
+@app.get("/debug")
+async def debug_info():
+    """系统调试信息"""
+    try:
+        import sys
+        import pkg_resources
+        
+        # 检查已安装的包
+        installed_packages = {}
+        for pkg in pkg_resources.working_set:
+            installed_packages[pkg.project_name] = pkg.version
+        
+        # 检查关键依赖
+        key_packages = ['fastapi', 'uvicorn', 'pdf2docx', 'Pillow']
+        package_status = {}
+        for pkg in key_packages:
+            try:
+                __import__(pkg.replace('-', '_'))
+                package_status[pkg] = f"✅ {installed_packages.get(pkg, 'unknown')}"
+            except ImportError as e:
+                package_status[pkg] = f"❌ {str(e)}"
+        
+        return {
+            "python_version": sys.version,
+            "working_directory": os.getcwd(),
+            "temp_directory": tempfile.gettempdir(),
+            "key_packages": package_status,
+            "environment_variables": {
+                k: v for k, v in os.environ.items() 
+                if k.startswith(('PYTHON', 'PATH', 'RENDER'))
+            }
+        }
+    except Exception as e:
+        logger.error(f"调试信息获取失败: {str(e)}")
+        return {"error": str(e)}
+
 @app.post("/api/convert")
 async def convert_pdf(file: UploadFile = File(...)):
     """PDF转换API - CSP兼容版"""
