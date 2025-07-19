@@ -1,0 +1,7 @@
+fastapi==0.104.1
+uvicorn==0.24.0
+python-multipart==0.0.6
+# 先安装Pillow的依赖
+Pillow==10.0.1
+# 然后安装pdf2docx
+pdf2docx==0.5.1 

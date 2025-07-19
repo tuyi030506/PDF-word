@@ -1,0 +1,63 @@
+FROM python:3.9-slim
+
+# 设置环境变量
+ENV PYTHONUNBUFFERED=1
+ENV PYTHONDONTWRITEBYTECODE=1
+
+# 安装系统依赖 - 增强Pillow支持
+RUN apt-get update && apt-get install -y \
+    libgl1-mesa-glx \
+    libglib2.0-0 \
+    libsm6 \
+    libxext6 \
+    libxrender-dev \
+    libgomp1 \
+    libfontconfig1 \
+    libfreetype6 \
+    curl \
+    gcc \
+    g++ \
+    libjpeg-dev \
+    zlib1g-dev \
+    libpng-dev \
+    libtiff-dev \
+    libwebp-dev \
+    libopenjp2-7-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# 创建非root用户
+RUN useradd --create-home --shell /bin/bash appuser
+
+WORKDIR /app
+
+# 升级pip和安装wheel
+RUN pip install --no-cache-dir --upgrade pip setuptools wheel
+
+# 复制依赖文件并分步安装
+COPY requirements-render-pillow-fix.txt .
+
+# 先单独安装Pillow确保成功
+RUN pip install --no-cache-dir Pillow==10.0.1
+
+# 然后安装其他依赖
+RUN pip install --no-cache-dir -r requirements-render-pillow-fix.txt
+
+# 复制应用代码
+COPY . .
+
+# 创建必要目录并设置权限
+RUN mkdir -p converted_files static logs && \
+    chown -R appuser:appuser /app
+
+# 切换到非root用户
+USER appuser
+
+# 暴露端口
+EXPOSE 3001
+
+# 健康检查
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD curl -f http://localhost:3001/health || exit 1
+
+# 启动命令 - 使用CSP兼容版本
+CMD ["python", "start_csp_fixed.py"] 
