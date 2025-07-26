@@ -1,0 +1,45 @@
+FROM python:3.9-slim
+
+# 设置环境变量
+ENV PYTHONUNBUFFERED=1
+ENV PYTHONDONTWRITEBYTECODE=1
+
+# 只安装基本系统依赖
+RUN apt-get update && apt-get install -y \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# 创建非root用户
+RUN useradd --create-home --shell /bin/bash appuser
+
+WORKDIR /app
+
+# 升级pip
+RUN pip install --no-cache-dir --upgrade pip
+
+# 复制并安装依赖 - 使用无Pillow版本
+COPY requirements-render-nopillow.txt .
+RUN pip install --no-cache-dir -r requirements-render-nopillow.txt
+
+# 验证关键依赖安装
+RUN python -c "import fastapi, uvicorn, PyPDF2; from docx import Document; print('所有依赖安装成功，无需Pillow!')"
+
+# 复制应用代码
+COPY . .
+
+# 创建必要目录并设置权限
+RUN mkdir -p converted_files static logs && \
+    chown -R appuser:appuser /app
+
+# 切换到非root用户
+USER appuser
+
+# 暴露端口
+EXPOSE 3001
+
+# 健康检查
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD curl -f http://localhost:3001/health || exit 1
+
+# 启动命令 - 使用无Pillow版本
+CMD ["python", "start_nopillow.py"] 

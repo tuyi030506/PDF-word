@@ -1,0 +1,7 @@
+fastapi==0.104.1
+uvicorn==0.24.0
+python-multipart==0.0.6
+# 使用不依赖Pillow的PDF转换库
+PyPDF2==3.0.1
+python-docx==0.8.11
+reportlab==4.0.4 
