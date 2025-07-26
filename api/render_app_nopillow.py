@@ -144,8 +144,8 @@ async def read_root():
         <h1>📄 PDF转换工具</h1>
         
         <div class="version-info">
-            <strong>✅ 无Pillow版本 2.6.0</strong><br>
-            使用PyPDF2技术，避免依赖问题
+                         <strong>✅ 增强版本 2.7.0</strong><br>
+             智能表格识别 + 格式优化
         </div>
         
         <div class="warning">
@@ -270,8 +270,8 @@ async def health_check():
     """健康检查"""
     return {
         "status": "healthy",
-        "message": "PDF转换服务运行正常 (无Pillow版)",
-        "version": "2.6.0",
+        "message": "PDF转换服务运行正常 (增强版)",
+        "version": "2.7.0",
         "environment": "render"
     }
 
@@ -303,8 +303,9 @@ async def debug_info():
             "working_directory": os.getcwd(),
             "temp_directory": tempfile.gettempdir(),
             "key_packages": package_status,
-            "conversion_method": "PyPDF2 + python-docx",
-            "pillow_required": False
+            "conversion_method": "增强版PyPDF2 + 智能表格识别",
+            "pillow_required": False,
+            "features": ["表格重建", "格式保持", "标题识别", "居中对齐"]
         }
     except Exception as e:
         logger.error(f"调试信息获取失败: {str(e)}")
@@ -408,15 +409,17 @@ async def convert_pdf(file: UploadFile = File(...)):
         raise HTTPException(status_code=500, detail=f"系统错误: {str(e)}")
 
 async def convert_pdf_to_word_nopillow(input_path: str, output_path: str) -> bool:
-    """PDF转Word - 无Pillow版本"""
+    """PDF转Word - 增强版本"""
     try:
-        logger.info("开始使用PyPDF2转换")
+        logger.info("开始使用增强版PyPDF2转换")
         
         # 导入库
         try:
             from PyPDF2 import PdfReader
             from docx import Document
-            logger.info("PyPDF2和python-docx导入成功")
+            from docx.enum.text import WD_ALIGN_PARAGRAPH
+            import re
+            logger.info("增强版转换器导入成功")
         except ImportError as e:
             logger.error(f"库导入失败: {e}")
             return False
@@ -428,19 +431,22 @@ async def convert_pdf_to_word_nopillow(input_path: str, output_path: str) -> boo
         
         # 创建Word文档
         doc = Document()
-        doc.add_heading('PDF转换文档', 0)
+        title = doc.add_heading('PDF转换文档', 0)
+        title.alignment = WD_ALIGN_PARAGRAPH.CENTER
         
-        # 提取文本
+        # 处理每一页
         for page_num in range(num_pages):
             page = reader.pages[page_num]
             text = page.extract_text()
             
             if text.strip():
-                doc.add_heading(f'第 {page_num + 1} 页', level=1)
-                doc.add_paragraph(text)
+                # 分析页面内容类型
+                if _is_table_content(text):
+                    _add_table_content(doc, text, page_num + 1)
+                else:
+                    _add_text_content(doc, text, page_num + 1)
             else:
-                doc.add_heading(f'第 {page_num + 1} 页', level=1)
-                doc.add_paragraph('(此页面无法提取文本，可能包含图像或特殊格式)')
+                _add_empty_page_notice(doc, page_num + 1)
         
         # 保存文档
         doc.save(output_path)
@@ -448,12 +454,112 @@ async def convert_pdf_to_word_nopillow(input_path: str, output_path: str) -> boo
         # 验证输出文件
         if os.path.exists(output_path):
             output_size = os.path.getsize(output_path)
-            logger.info(f"转换成功，输出文件大小: {output_size} bytes")
+            logger.info(f"增强版转换成功，输出文件大小: {output_size} bytes")
             return output_size > 0
         else:
             logger.error(f"转换后输出文件不存在: {output_path}")
             return False
             
     except Exception as e:
-        logger.error(f"PDF转换异常: {str(e)}", exc_info=True)
-        return False 
+        logger.error(f"增强版PDF转换异常: {str(e)}", exc_info=True)
+        return False
+
+def _is_table_content(text: str) -> bool:
+    """判断是否包含表格内容"""
+    import re
+    lines = text.split('\n')
+    
+    # 寻找表格行模式
+    table_indicators = 0
+    for line in lines:
+        # 检测多列数据模式
+        if len(re.findall(r'\s{3,}', line)) >= 2:  # 多个空格分隔
+            table_indicators += 1
+        # 检测数字序号
+        if re.match(r'^\s*\d+\s+', line):
+            table_indicators += 1
+    
+    return table_indicators >= 3
+
+def _add_table_content(doc, text: str, page_num: int):
+    """添加表格内容，尝试重建表格结构"""
+    import re
+    doc.add_heading(f'第 {page_num} 页', level=1)
+    
+    lines = text.split('\n')
+    table_lines = []
+    
+    # 提取表格行
+    for line in lines:
+        line = line.strip()
+        if line and (re.findall(r'\s{3,}', line) or re.match(r'^\d+\s+', line)):
+            # 分割列数据
+            columns = re.split(r'\s{3,}', line)
+            if len(columns) >= 2:
+                table_lines.append(columns)
+    
+    if table_lines and len(table_lines) > 1:
+        # 确定最大列数
+        max_cols = max(len(row) for row in table_lines)
+        
+        # 创建表格
+        table = doc.add_table(rows=len(table_lines), cols=max_cols)
+        table.style = 'Table Grid'
+        
+        # 填充表格数据
+        for i, row_data in enumerate(table_lines):
+            row = table.rows[i]
+            for j, cell_data in enumerate(row_data):
+                if j < len(row.cells):
+                    row.cells[j].text = cell_data.strip()
+    else:
+        # 如果无法构建表格，添加为段落
+        _add_text_content(doc, text, page_num)
+
+def _add_text_content(doc, text: str, page_num: int):
+    """添加文本内容，保持段落结构"""
+    import re
+    from docx.enum.text import WD_ALIGN_PARAGRAPH
+    
+    doc.add_heading(f'第 {page_num} 页', level=1)
+    
+    # 按段落分割
+    paragraphs = text.split('\n\n')
+    
+    for para in paragraphs:
+        para = para.strip()
+        if para:
+            # 检测标题模式
+            if _is_title_line(para):
+                doc.add_heading(para, level=2)
+            else:
+                # 处理长段落的换行
+                clean_para = re.sub(r'\n(?!\s*$)', ' ', para)
+                p = doc.add_paragraph(clean_para)
+                
+                # 如果是居中文本，设置居中对齐
+                if _should_center_align(clean_para):
+                    p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+
+def _is_title_line(text: str) -> bool:
+    """判断是否为标题行"""
+    text = text.strip()
+    # 短文本且包含特定关键词
+    if len(text) < 50 and any(keyword in text for keyword in ['说明', '证明', '附件', '第', '章', '节']):
+        return True
+    return False
+
+def _should_center_align(text: str) -> bool:
+    """判断是否应该居中对齐"""
+    text = text.strip()
+    # 短文本、日期、公司名等
+    if len(text) < 30 and any(keyword in text for keyword in ['公司', '日期', '说明', '证明']):
+        return True
+    return False
+
+def _add_empty_page_notice(doc, page_num: int):
+    """添加空页面提示"""
+    from docx.enum.text import WD_ALIGN_PARAGRAPH
+    doc.add_heading(f'第 {page_num} 页', level=1)
+    p = doc.add_paragraph('(此页面无法提取文本，可能包含图像或特殊格式)')
+    p.alignment = WD_ALIGN_PARAGRAPH.CENTER 
