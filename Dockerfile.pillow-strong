@@ -1,0 +1,78 @@
+FROM python:3.9-slim
+
+# 设置环境变量
+ENV PYTHONUNBUFFERED=1
+ENV PYTHONDONTWRITEBYTECODE=1
+
+# 安装完整的系统依赖 - 确保Pillow能成功编译
+RUN apt-get update && apt-get install -y \
+    libgl1-mesa-glx \
+    libglib2.0-0 \
+    libsm6 \
+    libxext6 \
+    libxrender-dev \
+    libgomp1 \
+    libfontconfig1 \
+    libfreetype6 \
+    curl \
+    gcc \
+    g++ \
+    make \
+    libjpeg-dev \
+    zlib1g-dev \
+    libpng-dev \
+    libtiff-dev \
+    libwebp-dev \
+    libopenjp2-7-dev \
+    liblcms2-dev \
+    libfribidi-dev \
+    libharfbuzz-dev \
+    python3-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# 创建非root用户
+RUN useradd --create-home --shell /bin/bash appuser
+
+WORKDIR /app
+
+# 升级pip和安装构建工具
+RUN pip install --no-cache-dir --upgrade pip setuptools wheel
+
+# 强制安装Pillow（多种方法）
+RUN pip install --no-cache-dir --force-reinstall Pillow==10.0.1 || \
+    pip install --no-cache-dir --force-reinstall Pillow==9.5.0 || \
+    pip install --no-cache-dir --force-reinstall --no-binary=Pillow Pillow==10.0.1
+
+# 验证Pillow安装
+RUN python -c "import PIL; print('Pillow version:', PIL.__version__)" && \
+    python -c "from PIL import Image; print('PIL.Image import successful')"
+
+# 复制并安装其他依赖
+COPY requirements-render-pillow-fix.txt .
+RUN pip install --no-cache-dir -r requirements-render-pillow-fix.txt
+
+# 再次验证所有依赖
+RUN python -c "import fastapi, uvicorn, pdf2docx, PIL; print('All imports successful')"
+
+# 复制应用代码
+COPY . .
+
+# 创建必要目录并设置权限
+RUN mkdir -p converted_files static logs && \
+    chown -R appuser:appuser /app
+
+# 切换到非root用户
+USER appuser
+
+# 最终验证（作为非root用户）
+RUN python -c "import PIL; print('Final Pillow check:', PIL.__version__)"
+
+# 暴露端口
+EXPOSE 3001
+
+# 健康检查
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD curl -f http://localhost:3001/health || exit 1
+
+# 启动命令
+CMD ["python", "start_csp_fixed.py"] 
