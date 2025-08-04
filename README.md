@@ -34,10 +34,10 @@ pip install -r requirements.txt
 
 ### 启动服务
 ```bash
-python start.py
+python server.py
 ```
 
-访问 http://localhost:8000 即可使用。
+访问 http://localhost:3001 即可使用。
 
 ## 📊 使用限制
 
@@ -72,9 +72,14 @@ Content-Type: multipart/form-data
 本项目已针对Render平台进行优化，包含以下配置文件：
 
 - `render.yaml`: Render部署配置
-- `start.py`: 应用启动脚本
+- `server.py`: 主应用服务文件
 - `requirements.txt`: Python依赖
-- `runtime.txt`: Python版本
+- `runtime.txt`: Python版本配置
+- `Dockerfile`: Docker容器配置
+- `api/`: 不同转换器模块
+  - `debug_app.py`: 调试版本
+  - `render_app_cloudconvert.py`: CloudConvert商业转换
+  - `render_app_libreoffice.py`: LibreOffice免费转换
 
 ## 🤝 贡献
 
