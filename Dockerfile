@@ -1,4 +1,4 @@
-FROM python:3.9-slim
+FROM python:3.11-slim
 
 # 设置环境变量
 ENV PYTHONUNBUFFERED=1
@@ -22,9 +22,9 @@ RUN useradd --create-home --shell /bin/bash appuser
 WORKDIR /app
 
 # 复制依赖文件并安装
-COPY requirements-render.txt .
+COPY requirements.txt .
 RUN pip install --no-cache-dir --upgrade pip && \
-    pip install --no-cache-dir -r requirements-render.txt
+    pip install --no-cache-dir -r requirements.txt
 
 # 复制应用代码
 COPY . .
@@ -43,5 +43,5 @@ EXPOSE 3001
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
     CMD curl -f http://localhost:3001/health || exit 1
 
-# 启动命令
-CMD ["python", "start.py"] 
+# 启动命令 - 使用主服务文件
+CMD ["python", "server.py"] 

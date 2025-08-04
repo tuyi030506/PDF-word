@@ -97,4 +97,7 @@ coverage.xml
 
 # Translations
 *.mo
-*.pot 
+*.pot
+
+# Backup API files
+backup_api_files/
