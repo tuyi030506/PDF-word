@@ -8,7 +8,7 @@ Render 部署启动脚本
 
 import os
 import uvicorn
-from api.render_app import app
+from api.render_app_libreoffice import app
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 8000))

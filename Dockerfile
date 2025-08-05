@@ -4,8 +4,10 @@ FROM python:3.11-slim
 ENV PYTHONUNBUFFERED=1
 ENV PYTHONDONTWRITEBYTECODE=1
 
-# 安装系统依赖
+# 安装系统依赖，包括LibreOffice
 RUN apt-get update && apt-get install -y \
+    libreoffice \
+    libreoffice-writer \
     libgl1-mesa-glx \
     libglib2.0-0 \
     libsm6 \
@@ -14,6 +16,7 @@ RUN apt-get update && apt-get install -y \
     libgomp1 \
     libfontconfig1 \
     libfreetype6 \
+    curl \
     && rm -rf /var/lib/apt/lists/*
 
 # 创建非root用户
