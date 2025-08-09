@@ -270,14 +270,23 @@ async def convert_pdf_to_excel(pdf_path: Path, temp_dir: str) -> Path:
     except Exception as e:
         logger.error(f"PDF转Excel转换失败: {str(e)}")
         # 创建一个包含错误信息的Excel文件
-        error_df = pd.DataFrame({
-            '转换状态': ['转换遇到问题'],
-            '文件名': [pdf_path.name],
-            '错误信息': [str(e)],
-            '建议': ['请尝试PDF转Word格式，或检查PDF文件是否完整']
-        })
-        error_df.to_excel(str(output_path), sheet_name='转换信息', index=False)
-        return output_path
+        try:
+            import pandas as pd
+            output_path = Path(temp_dir) / "output.xlsx"
+            error_df = pd.DataFrame({
+                '转换状态': ['转换遇到问题'],
+                '文件名': [pdf_path.name],
+                '错误信息': [str(e)],
+                '建议': ['请尝试PDF转Word格式，或检查PDF文件是否完整']
+            })
+            error_df.to_excel(str(output_path), sheet_name='转换信息', index=False)
+            return output_path
+        except ImportError:
+            # 如果pandas也导入失败，创建一个简单的文本文件作为Excel
+            output_path = Path(temp_dir) / "output.xlsx"
+            with open(output_path, 'w', encoding='utf-8') as f:
+                f.write(f"转换失败: {str(e)}\n")
+            return output_path
 
 if __name__ == "__main__":
     import uvicorn
