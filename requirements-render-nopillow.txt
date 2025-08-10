@@ -1,7 +1,9 @@
 fastapi==0.104.1
 uvicorn==0.24.0
 python-multipart==0.0.6
-# 使用不依赖Pillow的PDF转换库
+# 核心PDF转换依赖
 PyPDF2==3.0.1
 python-docx==0.8.11
+pdf2docx==0.5.6
+# 可选依赖（避免Pillow问题）
 reportlab==4.0.4 
